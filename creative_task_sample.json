@@ -1,0 +1,86 @@
+[
+    {
+        "task_name": "cp",
+        "task_name_original": "Common Problems Task",
+        "task_prompt": "Common Problems Task. In this task, you will be presented with a scenario or situation. Your job is to think about it and identify as many potential problems or issues that may arise in connection with each situation. The scenario is: ",
+        "task_list": [
+            "Planning a birthday party for a 5-year-old.",
+            "Organizing a cross-country road trip.",
+            "Preparing a holiday dinner for a large family.",
+            "Designing a new software product.",
+            "Starting a new business."
+        ]
+    },
+    {
+        "task_name": "cq",
+        "task_name_original": "Consequences Task",
+        "task_prompt": "Consequences Task. You will be presented with a situation, and your task is to imagine as many consequences of the unusual situation as you can think of. The situation is: ",
+        "task_list": [
+            "What might be the consequences if humans suddenly lost the ability to sleep?",
+            "What would happen if all cars were replaced with bicycles?",
+            "What would be the implications if animals could talk?",
+            "What would be the consequences if humans could live for 500 years?",
+            "What might happen if dogs could fly?"
+        ]
+    },
+    {
+        "task_name": "im",
+        "task_name_original": "Improvement Task",
+        "task_prompt": "Improvement Task. You'll be presented with a object, and your task is to suggest as many ways as you can think of to improve the object. Here's the object: ",
+        "task_list": [
+            "pencil",
+            "wristwatch",
+            "bicycle",
+            "microwave owen",
+            "book"
+        ]
+    },
+    {
+        "task_name": "is",
+        "task_name_original": "Imaginative Stories Task",
+        "task_prompt": "Imaginative Stories Task. You'll be presented with a prompt, and your task is to construct as many narrative or story based on the prompt as you can think of. The prompt is: ",
+        "task_list": [
+            "The Dog That Did Not Bark",
+            "The Invisible Elephant",
+            "The River that Flowed Backward",
+            "The Tree that Could Talk",
+            "The Day the Sun Forgot to Rise"
+        ]
+    },
+    {
+        "task_name": "js",
+        "task_name_original": "Just Suppose Task",
+        "task_prompt": "Just Suppose Task. You'll be presented with a hypothetical scenario, and your task is to propose as many outcomes or effects as you can think of for the scenario. The scenario is: ",
+        "task_list": [
+            "Just suppose you woke up one morning and found you could fly. What would you do? List as many things as you can think of.",
+            "Just suppose you had the ability to speak to animals. What would you ask them or do? Try to list as many things as you can think of.",
+            "Just suppose you had the power to become invisible at will. How would you use this ability? List as many different things as you can.",
+            "Just suppose we didn't need to sleep anymore. How would our lives and society change? Try to list as many ways as possible.",
+            "Just suppose we could breathe underwater without the need for any equipment. What would change in our daily lives, in society, in science? Try to list as many things as you can."
+        ]
+    },
+    {
+        "task_name": "st",
+        "task_name_original": "Situation Task",
+        "task_prompt": "Situation Task. You'll be presented with a scenario, and your task is to suggest as many solutions or outcomes as you can think of for each situation. The scenario is: ",
+        "task_list": [
+            "If all cars were to suddenly stop working, how would you travel from one city to another?",
+            "If all electronic communication were to suddenly cease, how would you contact someone in another country?",
+            "If all supermarkets were to close down, how would you obtain food?",
+            "If your house were to suddenly disappear, where would you live?",
+            "If all the world's forests disappeared, how would you replace the lost natural resources?"
+        ]
+    },
+    {
+        "task_name": "uu",
+        "task_name_original": "Unusual Uses Task",
+        "task_prompt": "Unusual Uses Task. You will be presented with a common object, and your task is to suggest as many unusual, innovative, or non-traditional uses for each object as you can think of. The object is: ",
+        "task_list": [
+            "brick",
+            "paperclip",
+            "rubber hand",
+            "cardboard box",
+            "spoon"
+        ]
+    }
+]
