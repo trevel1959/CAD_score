@@ -55,16 +55,20 @@ def main(args):
     )
     answer_emb_data = load_pickle_zstd(emb_file_path)
 
-    vi_scores = np.array([
-        vendi_score_vectorized(emb, args.maximum_allowed_num_items)
-        for answer_emb in answer_emb_data
-        for emb in answer_emb
-    ])
-
-    # for i in range(7):
-    #     print_confidence_interval(vi_scores[i*100:(i+1)*100])
-
-    print_confidence_interval(vi_scores)
+    if args.scoring_per_task:
+        for emb_per_task in answer_emb_data:
+            vi_scores = np.array([
+                vendi_score_vectorized(emb, args.maximum_allowed_num_items)
+                for emb in emb_per_task
+            ])
+            print_confidence_interval(vi_scores)
+    else:
+        vi_scores = np.array([
+            vendi_score_vectorized(emb, args.maximum_allowed_num_items)
+            for answer_emb in answer_emb_data
+            for emb in answer_emb
+        ])
+        print_confidence_interval(vi_scores)
     
     score_file_path = f"{args.scoring_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}.csv"
     pd.DataFrame(vi_scores).to_csv(score_file_path, index=False)
@@ -89,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--maximum_allowed_num_items", type=convert_or_none(int), default=None)
 
     parser.add_argument("--scoring_dir", type=str, default="scoring")
+    parser.add_argument("--scoring_per_task", action="store_true")
 
     args = parser.parse_args()
     main(args)
