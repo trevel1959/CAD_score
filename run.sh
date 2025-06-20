@@ -1,59 +1,67 @@
 #!/bin/bash
 
-# Download nltk resources
-python -c "
+set -euo pipefail
+IFS=$'\n\t'
+
+# Download required NLTK resources for text processing
+python - <<PYCODE
 import nltk
+
+# Download tokenization and stopword data
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('punkt_tab')
-"
+PYCODE
 
-# Define an array of models
-models=(
-    "meta-llama/Llama-3.2-3B-Instruct"
-    "meta-llama/Llama-3.1-8B-Instruct"
+# ----------------------------------------------------------------------------
+# Source shared configuration
+# ----------------------------------------------------------------------------
+source "$(dirname "$0")/.env"
 
-    "google/gemma-2-2b-it"
-    "google/gemma-2-9b-it"
+# Create output directories if they do not already exist
+mkdir -p "$GEN_DIR" "$EMB_DIR" "$DEBUG_DIR" "$SCORING_DIR"
 
-    "Qwen/Qwen2.5-3B-Instruct"
-    "Qwen/Qwen2.5-7B-Instruct"
-    "Qwen/Qwen2.5-14B-Instruct"
-)
+# ----------------------------------------------------------------------------
+# Step 1: Generate creative answers
+# ----------------------------------------------------------------------------
+echo "[Generating] Model: $GEN_MODEL"
+python a1_inference.py \
+    --dataset_dir "$DATASET_DIR" \
+    --dataset_file "$DATASET_FILE" \
+    --generation_model_name "$GEN_MODEL" \
+    --generation_dir "$GEN_DIR" \
+    --generation_env "$GEN_ENV" \
+    --max_new_tokens "$MAX_NEW_TOKENS" \
+    --temperature "$TEMPERATURE" \
+    --top_p "$TOP_P" \
+    --top_k "$TOP_K" \
+    --min_p "$MIN_P" \
+    --minimum_required_num_items "$MIN_REQUIRED_NUM_ITEMS" \
+    --maximum_allowed_num_items "$MAX_ALLOWED_NUM_ITEMS" \
+    --min_meaningful_tokens_per_answer "$MIN_MEANINGFUL_TOKENS_PER_ANSWER"
 
-# Make required directories
-debug_dir="debug"
-generation_dir="generation"
-embedding_dir="embedding"
-scoring_dir="scoring"
+# ----------------------------------------------------------------------------
+# Step 2: Compute embeddings for generated answers
+# ----------------------------------------------------------------------------
+echo "[Embedding] Model: $GEN_MODEL"
+python a2_embedding.py \
+    --dataset_dir "$DATASET_DIR" \
+    --dataset_file "$DATASET_FILE" \
+    --generation_model_name "$GEN_MODEL" \
+    --generation_dir "$GEN_DIR" \
+    --generation_env "$GEN_ENV" \
+    --embedding_model_name "$EMB_MODEL" \
+    --embedding_dir "$EMB_DIR"
 
-mkdir -p "${generation_dir}" "${embedding_dir}" "${debug_dir}" "${scoring_dir}"
+# ----------------------------------------------------------------------------
+# Step 3: Calculate CAD scores using embeddings
+# ----------------------------------------------------------------------------
+echo "[Scoring] Model: $GEN_MODEL"
+python a3_scoring.py \
+    --generation_model_name "$GEN_MODEL" \
+    --generation_env "$GEN_ENV" \
+    --embedding_model_name "$EMB_MODEL" \
+    --embedding_dir "$EMB_DIR" \
+    --scoring_dir "$SCORING_DIR"
 
-for model in "${models[@]}"; do
-    generation_env_name="standard"
-    embedding_env_name="gte-Qwen2-7B-instruct"
-
-    echo "[Generating] Model: $model"
-    python a1_inference.py \
-    -m "${model}" \
-    --dataset_file "creative_task_sample.json" \
-    --generation_env "${generation_env_name}" \
-    --temperature 1 --top_p 1 --top_k 50 --min_p None \
-    --minimum_required_num_items 5 --maximum_allowed_num_items 5 \
-    --temp-save
-
-    echo "[Embedding] Model: $model"
-    python a2_embedding.py \
-    -m "${model}" \
-    --embedding_model_name "Alibaba-NLP/gte-Qwen2-7B-instruct" \
-    --generation_env "${generation_env_name}" \
-    --embedding_env "${generation_env_name}_${embedding_env_name}"
-
-    echo "[Scoring] Model: $model"
-    python a3_scoring.py \
-    -m "${model}" \
-    --embedding_dir "${embedding_dir}" \
-    --embedding_env "${generation_env_name}_${embedding_env_name}" \
-    --scoring_dir "${scoring_dir}" \
-    --scoring_env "${generation_env_name}_${embedding_env_name}"
-done
+echo "All steps completed successfully."

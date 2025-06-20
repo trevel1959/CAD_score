@@ -15,8 +15,8 @@ def load_pickle_zstd(path):
             return pickle.load(reader)
 
 def vendi_score_vectorized(embeddings: np.ndarray, maximum_allowed_num_items: int = None) -> float:
-    if embeddings is None or embeddings.size == 0 or embeddings.shape[0] == 0:
-        return 1
+    # if embeddings is None or embeddings.size == 0 or embeddings.shape[0] == 0:
+    #     return 1
 
     if maximum_allowed_num_items is not None:
         embeddings = embeddings[:maximum_allowed_num_items]
@@ -47,8 +47,13 @@ def print_confidence_interval(data: np.ndarray, confidence: float = 0.95):
 
     print(f"{int(confidence*100)}% CI: {mean:.4f} +- {margin:.4f} | N={n}")
 
-def sim_per_each_query(args):
-    answer_emb_data = load_pickle_zstd(f"{args.embedding_dir}/{args.embedding_env}_{args.model_name.replace('/', '_')}.zstd")
+def main(args):
+    emb_file_path = (
+        f"{args.embedding_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}.zstd"
+        if not args.embedding_only_answer else
+        f"{args.embedding_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}_answer_only.zstd"
+    )
+    answer_emb_data = load_pickle_zstd(emb_file_path)
 
     vi_scores = np.array([
         vendi_score_vectorized(emb, args.maximum_allowed_num_items)
@@ -61,20 +66,29 @@ def sim_per_each_query(args):
 
     print_confidence_interval(vi_scores)
     
-    output_csv = f"{args.scoring_dir}/{args.scoring_env}_{args.model_name.replace('/', '_')}.csv"
-    pd.DataFrame(vi_scores).to_csv(output_csv, index=False)
-    # print(f"Saved: {output_csv}")
+    score_file_path = f"{args.scoring_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}.csv"
+    pd.DataFrame(vi_scores).to_csv(score_file_path, index=False)
+    print(f"Saved: {score_file_path}")
+
+def convert_or_none(type_fn):
+    def convert(x):
+        if x.lower() == "none":
+            return None
+        return type_fn(x)
+    return convert
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--generation_model_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--generation_env", type=str, default="standard")
+    
+    parser.add_argument("--embedding_model_name", type=str, default="Alibaba-NLP/gte-Qwen2-7B-instruct")
     parser.add_argument("--embedding_dir", type=str, default="embedding")
-    parser.add_argument("--embedding_env", type=str, default="base_qwen")
+    parser.add_argument("--embedding_only_answer", action="store_true")
 
-    parser.add_argument("--maximum_allowed_num_items", type=int, default=None)
+    parser.add_argument("--maximum_allowed_num_items", type=convert_or_none(int), default=None)
 
     parser.add_argument("--scoring_dir", type=str, default="scoring")
-    parser.add_argument("--scoring_env", type=str, default="base_qwen")
 
     args = parser.parse_args()
-    sim_per_each_query(args)
+    main(args)

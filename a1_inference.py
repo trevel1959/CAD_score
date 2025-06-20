@@ -42,7 +42,6 @@ def extract_items(text: str) -> list[str]:
     if text is None or text == "":
         return []
 
-    # text = text.replace('   - **Unusual Use ', '\n')
     text = re.sub(r'\n\s+', '\n', text)
     text = re.sub(r'-{3,}', ' ', text)
     text = re.sub(r'\n(\d+[.:])\s+', r'<<SPLIT>>\1', text)
@@ -98,18 +97,18 @@ def is_answer_valid(ans: str, finish_reason: str, args: argparse.Namespace) -> b
             ]
             return len(meaningful_tokens) >= args.min_meaningful_tokens_per_answer
 
-    elif args.language == "chinese":
-        import jieba
+    # elif args.language == "chinese":
+    #     import jieba
 
-        stop_words = set(stopwords.words("chinese"))
-        punctuation_table = str.maketrans('', '', string.punctuation)
+    #     stop_words = set(stopwords.words("chinese"))
+    #     punctuation_table = str.maketrans('', '', string.punctuation)
 
-        def is_meaningful_token(item: str) -> bool:
-            tokens = jieba.lcut(item.translate(punctuation_table))
-            meaningful_tokens = [
-                w for w in tokens if w.strip() and w not in stop_words
-            ]
-            return len(meaningful_tokens) >= args.min_meaningful_tokens_per_answer
+    #     def is_meaningful_token(item: str) -> bool:
+    #         tokens = jieba.lcut(item.translate(punctuation_table))
+    #         meaningful_tokens = [
+    #             w for w in tokens if w.strip() and w not in stop_words
+    #         ]
+    #         return len(meaningful_tokens) >= args.min_meaningful_tokens_per_answer
     else:
         raise ValueError(f"Invalid language: {args.language}")
 
@@ -156,7 +155,7 @@ def save_debug_log(debug_file: str, debug_log: dict, success_entries: list[tuple
 
 def generate_with_validation(queries: list[str], tokenizer, args: argparse.Namespace, max_retries: int = 20) -> list[list[str]]:
     # --- Initialization ---
-    start_time = time.time() + 9 * 3600  # Korean time
+    start_time = time.time()
     time_str = time.strftime("%m%d_%H%M%S", time.localtime(start_time))
 
     n_queries = len(queries)
@@ -164,15 +163,9 @@ def generate_with_validation(queries: list[str], tokenizer, args: argparse.Names
     invalid_indices = list(range(n_queries))
 
     if args.temp_save:
-        debug_file, debug_log = init_debug_log(args.output_dir, args.model_name, n_queries, time_str)
+        debug_file, debug_log = init_debug_log(args.generation_dir, args.generation_model_name, n_queries, time_str)
 
-    if args.continue_from_debug:
-        with open(args.debug_file, "r", encoding="utf-8") as f:
-            debug_log = json.load(f)
-        answers = [None if debug_log["success"][i] is None else debug_log["success"][i]["raw_answer"] for i in range(n_queries)]
-        invalid_indices = [i for i in range(n_queries) if answers[i] is None]
-
-    model = load_vllm_model(args.model_name)
+    model = load_vllm_model(args.generation_model_name)
     sampling_params = SamplingParams(
         max_tokens=args.max_new_tokens,
         temperature=args.temperature,
@@ -222,9 +215,10 @@ def generate_with_validation(queries: list[str], tokenizer, args: argparse.Names
     return parsed_answers
 
 def main(args):
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, trust_remote_code=True, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(args.generation_model_name, trust_remote_code=True, use_fast=True)
 
-    with open(f"{args.input_dir}/{args.dataset_file}", 'r', encoding='utf-8') as f:
+    # --- Construct queries from dataset ---
+    with open(f"{args.dataset_dir}/{args.dataset_file}", 'r', encoding='utf-8') as f:
         dataset = json.load(f)
     
     if args.minimum_required_num_items is not None:
@@ -240,7 +234,7 @@ def main(args):
         "Do not include any introductory text."
     )
 
-    use_system_role = "gemma" not in args.model_name.lower()
+    use_system_role = "gemma" not in args.generation_model_name.lower()
 
     all_queries = []
     for task in dataset:
@@ -261,6 +255,7 @@ def main(args):
             )
             all_queries.append(prompt)
 
+    # --- Generate and save results ---
     all_answers = generate_with_validation(all_queries, tokenizer, args)
 
     final_answers = []
@@ -273,51 +268,42 @@ def main(args):
             idx += 1
         final_answers.append(task_queries)
 
-    # 결과 저장
-    output_file = f"{args.output_dir}/{args.generation_env}_{args.model_name.replace('/', '_')}.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
+    gen_file_path = f"{args.generation_dir}/{args.generation_env}_{args.generation_model_name.replace('/', '_')}.json"
+    with open(gen_file_path, 'w', encoding='utf-8') as f:
         json.dump(final_answers, f, ensure_ascii=False, indent=4)
 
     torch.cuda.empty_cache()
     if torch.distributed.is_initialized():
         torch.distributed.destroy_process_group()
 
-def float_or_none(x):
-    if x.lower() == "none":
-        return None
-    return float(x)
-
-def int_or_none(x):
-    if x.lower() == "none":
-        return None
-    return int(x)
+def convert_or_none(type_fn):
+    def convert(x):
+        if x.lower() == "none":
+            return None
+        return type_fn(x)
+    return convert
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model_name", type=str, default="meta-llama/Llama-3.2-3B-Instruct")
-    parser.add_argument("--input_dir", type=str, default="dataset")
-    parser.add_argument("--output_dir", type=str, default="generation")
-    parser.add_argument("--dataset_file", type=str, default="creative_task.json")
-    parser.add_argument("--generation_env", type=str, default="base")
+
+    parser.add_argument("-m", "--generation_model_name", type=str, default="meta-llama/Llama-3.2-3B-Instruct")
+    parser.add_argument("--dataset_dir", type=str, default="dataset")
+    parser.add_argument("--dataset_file", type=str, default="creative_task_sample.json")
     parser.add_argument("--language", type=str, default="english")
 
+    parser.add_argument("--generation_dir", type=str, default="generation")
+    parser.add_argument("--generation_env", type=str, default="standard")
     parser.add_argument("--max_new_tokens", type=int, default=1024)
     parser.add_argument("--temperature", type=float, default=1)
-    parser.add_argument("--top_p", type=float_or_none, default=1)
-    parser.add_argument("--top_k", type=int_or_none, default=50)
-    parser.add_argument("--min_p", type=float_or_none, default=None)
-
-    parser.add_argument("--minimum_required_num_items", type=int_or_none, default=5)
-    parser.add_argument("--maximum_allowed_num_items", type=int_or_none, default=5)
-    parser.add_argument("--min_meaningful_tokens_per_answer", type=int_or_none, default=3)
+    parser.add_argument("--top_p", type=convert_or_none(float), default=1)
+    parser.add_argument("--min_p", type=convert_or_none(float), default=None)
+    parser.add_argument("--top_k", type=convert_or_none(int), default=50)
+    parser.add_argument("--minimum_required_num_items", type=convert_or_none(int), default=None)
+    parser.add_argument("--maximum_allowed_num_items", type=convert_or_none(int), default=None)
+    parser.add_argument("--min_meaningful_tokens_per_answer", type=convert_or_none(int), default=3)
 
     parser.add_argument("--temp-save", action="store_true")
-    parser.add_argument("--continue_from_debug", action="store_true")
-    parser.add_argument("--debug_file", type=str, default=None)
     args = parser.parse_args()
-
-    print(args)
 
     logging.getLogger("vllm").setLevel(logging.ERROR)
     main(args)

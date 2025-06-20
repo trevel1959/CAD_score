@@ -12,11 +12,16 @@ import pandas as pd
 from vllm import LLM
 
 def calculate_answer_embedding(args):
-    with open(f"{args.dataset_dir}/{args.dataset_name}.json", "r", encoding="utf-8") as f:
+    # --- Load dataset and generated answers ---
+    dataset_file_path = f"{args.dataset_dir}/{args.dataset_file}"
+    with open(dataset_file_path, "r", encoding="utf-8") as f:
         query_data = json.load(f)
-    with open(f"{args.generation_dir}/{args.generation_env}_{args.test_model_name.replace('/', '_')}.json", "r", encoding="utf-8") as f:
+
+    gen_file_path = f"{args.generation_dir}/{args.generation_env}_{args.generation_model_name.replace('/', '_')}.json"
+    with open(gen_file_path, "r", encoding="utf-8") as f:
         answer_data = json.load(f)
 
+    # --- Construct texts for embedding ---
     texts_answer_with_query = []
     answer_counts = []
     for task, answers_per_task in zip(query_data, answer_data):
@@ -30,7 +35,7 @@ def calculate_answer_embedding(args):
                     texts_answer_with_query.append(f"Q: {task['task_prompt']} {query}\nA: {answer}")
         answer_counts.append(per_task_counts)
 
-    # Load embedding model
+    # --- Load embedding model ---
     model = LLM(
         model=args.embedding_model_name,
         tokenizer=args.embedding_model_name,
@@ -42,8 +47,10 @@ def calculate_answer_embedding(args):
         task="embed"
     )
 
+    # --- Embed texts ---
     embs_answer_with_query = np.stack([np.array(e.outputs.embedding) for e in model.embed(texts_answer_with_query)])
 
+    # --- Reshape and save answer embeddings ---
     reshaped_embs = []
     idx = 0
     for per_task_counts in answer_counts:
@@ -53,13 +60,12 @@ def calculate_answer_embedding(args):
             idx += num_ans
         reshaped_embs.append(task_embs)
 
-    # Save answer embeddings
-    output_file = (
-        f"{args.embedding_dir}/{args.embedding_env}_{args.test_model_name.replace('/', '_')}.zstd"
+    emb_file_path = (
+        f"{args.embedding_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}.zstd"
         if not args.embedding_only_answer else
-        f"{args.embedding_dir}/{args.embedding_env}_{args.test_model_name.replace('/', '_')}_answer_only.zstd"
+        f"{args.embedding_dir}/{args.generation_env}_{args.embedding_model_name.split('/')[-1]}_{args.generation_model_name.replace('/', '_')}_answer_only.zstd"
     )
-    with open(output_file, "wb") as f:
+    with open(emb_file_path, "wb") as f:
         cctx = zstd.ZstdCompressor(level=5)
         with cctx.stream_writer(f) as writer:
             pickle.dump(reshaped_embs, writer, protocol=pickle.HIGHEST_PROTOCOL)
@@ -70,16 +76,15 @@ def calculate_answer_embedding(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--test_model_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--dataset_dir", type=str, default="dataset")
+    parser.add_argument("--dataset_file", type=str, default="creative_task_sample.json")
+
+    parser.add_argument("--generation_model_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
     parser.add_argument("--generation_dir", type=str, default="generation")
-    parser.add_argument("--generation_env", type=str, default="base")
+    parser.add_argument("--generation_env", type=str, default="standard")
 
     parser.add_argument("--embedding_model_name", type=str, default="Alibaba-NLP/gte-Qwen2-7B-instruct")
-    parser.add_argument("--dataset_dir", type=str, default="dataset")
-    parser.add_argument("--dataset_name", type=str, default="creative_task")
     parser.add_argument("--embedding_dir", type=str, default="embedding")
-    parser.add_argument("--embedding_env", type=str, default="base_qwen")
-
     parser.add_argument("--embedding_only_answer", action="store_true")
     args = parser.parse_args()
     
