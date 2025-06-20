@@ -25,7 +25,7 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 ## Dataset Information
 
 * **Sample file**: `dataset/creative_tasks_sample.json`
-
+  * This dataset is inspired by the Torrance Tests of Creative Thinking (TTCT), which are evenly distributed across seven distinct verbal task categories.
   * A small subset of prompts and answer lists drawn from Zhao *et al.* (2025). Only the portions published in the article are shared here for reproducibility.
   The complete dataset is under the authors’ copyright and has **not** been made public.
   Only the prompts for each task and a limited subset of queries disclosed in the above article are included here solely for reproducibility.
