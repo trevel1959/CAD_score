@@ -16,7 +16,7 @@ PYCODE
 # ----------------------------------------------------------------------------
 # Source shared configuration
 # ----------------------------------------------------------------------------
-source "$(dirname "$0")/.env"
+source "$(dirname "$0")/base.env"
 
 # Create output directories if they do not already exist
 mkdir -p "$GEN_DIR" "$EMB_DIR" "$DEBUG_DIR" "$SCORING_DIR"
@@ -25,7 +25,7 @@ mkdir -p "$GEN_DIR" "$EMB_DIR" "$DEBUG_DIR" "$SCORING_DIR"
 # Step 1: Generate creative answers
 # ----------------------------------------------------------------------------
 echo "[Generating] Model: $GEN_MODEL"
-python a1_inference.py \
+python 1_generate_answers.py \
     --dataset_dir "$DATASET_DIR" \
     --dataset_file "$DATASET_FILE" \
     --generation_model_name "$GEN_MODEL" \
@@ -40,11 +40,11 @@ python a1_inference.py \
     --maximum_allowed_num_items "$MAX_ALLOWED_NUM_ITEMS" \
     --min_meaningful_tokens_per_answer "$MIN_MEANINGFUL_TOKENS_PER_ANSWER"
 
-# ----------------------------------------------------------------------------
-# Step 2: Compute embeddings for generated answers
-# ----------------------------------------------------------------------------
+# # ----------------------------------------------------------------------------
+# # Step 2: Compute embeddings for generated answers
+# # ----------------------------------------------------------------------------
 echo "[Embedding] Model: $GEN_MODEL"
-python a2_embedding.py \
+python 2_embedding_local.py \
     --dataset_dir "$DATASET_DIR" \
     --dataset_file "$DATASET_FILE" \
     --generation_model_name "$GEN_MODEL" \
@@ -53,11 +53,11 @@ python a2_embedding.py \
     --embedding_model_name "$EMB_MODEL" \
     --embedding_dir "$EMB_DIR"
 
-# ----------------------------------------------------------------------------
-# Step 3: Calculate CAD scores using embeddings
-# ----------------------------------------------------------------------------
+# # ----------------------------------------------------------------------------
+# # Step 3: Calculate CAD scores using embeddings
+# # ----------------------------------------------------------------------------
 echo "[Scoring] Model: $GEN_MODEL"
-python a3_scoring.py \
+python 3_scoring_cad.py \
     --generation_model_name "$GEN_MODEL" \
     --generation_env "$GEN_ENV" \
     --embedding_model_name "$EMB_MODEL" \

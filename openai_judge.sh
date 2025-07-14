@@ -6,7 +6,7 @@ IFS=$'\n\t'
 # ----------------------------------------------------------------------------
 # Configuration of model names, environments, and directories
 # ----------------------------------------------------------------------------
-source "$(dirname "$0")/.env"
+source "$(dirname "$0")/base.env"
 
 mkdir -p "${BATCH_INPUT_DIR}" "${BATCH_OUTPUT_DIR}"
 

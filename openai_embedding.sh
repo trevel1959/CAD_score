@@ -3,7 +3,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-source "$(dirname "$0")/.env"
+source "$(dirname "$0")/base.env"
 
 if $DO_UPLOAD; then
 # ----------------------------------------------------------------------------

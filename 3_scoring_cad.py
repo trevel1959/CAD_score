@@ -15,8 +15,8 @@ def load_pickle_zstd(path):
             return pickle.load(reader)
 
 def vendi_score_vectorized(embeddings: np.ndarray, maximum_allowed_num_items: int = None) -> float:
-    # if embeddings is None or embeddings.size == 0 or embeddings.shape[0] == 0:
-    #     return 1
+    if embeddings is None or embeddings.size == 0 or embeddings.shape[0] == 0:
+        return 0
 
     if maximum_allowed_num_items is not None:
         embeddings = embeddings[:maximum_allowed_num_items]

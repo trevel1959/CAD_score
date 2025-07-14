@@ -25,7 +25,7 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 ## Dataset Information
 
 * **Sample file**: `dataset/creative_tasks_sample.json`
-  * This dataset is inspired by the Torrance Tests of Creative Thinking (TTCT), which are evenly distributed across seven distinct verbal task categories.
+
   * A small subset of prompts and answer lists drawn from Zhao *et al.* (2025). Only the portions published in the article are shared here for reproducibility.
   The complete dataset is under the authors’ copyright and has **not** been made public.
   Only the prompts for each task and a limited subset of queries disclosed in the above article are included here solely for reproducibility.
@@ -41,24 +41,26 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 
 * **Core scripts**:
 
-  * `a1_inference.py` – Generate creative outputs from a local or remote LLM
-  * `a2_embedding.py` – Convert generated text to embeddings
-  * `a3_scoring.py` – Compute CAD scores (kernel-entropy on normalized cosine similarity)
+  * `1_generate_answers.py` – Generate creative outputs from a local or remote LLM
+  * `2_embedding_local.py` – Convert generated text to embeddings
+  * `3_scoring_cad.py` – Compute CAD scores (kernel-entropy on normalized cosine similarity)
 * **Batch & API**:
 
-  * `b1_gpt_batch_upload.py` – Create and upload OpenAI batch requests for GPT evaluation
-  * `b2_gpt_batch_download.py` – Download and save batch results as CSV for GPT evaluation
-  * `b3_correlation_between_scores.py` – Compute Spearman correlations between CAD scores and GPT evaluations
-  * `c1_gpt_emb_batch_upload.py` – Create and upload OpenAI batch requests for OpenAI embedding model
-  * `c2_gpt_emb_batch_download.py` – Download and save completed embedding-model batch results
+  * `2a_embedding_openai_upload.py` – Create and upload OpenAI batch requests for OpenAI embedding model
+  * `2b_embedding_openai_download.py` – Download and save completed embedding-model batch results
+  * `3a_scoring_openai_upload.py` – Create and upload OpenAI batch requests for GPT evaluation
+  * `3b_scoring_openai_download.py` – Download and save batch results as CSV for GPT evaluation
+  * `3c_scoring_other_methods.py` – Compute alternative diversity metrics (e.g., self-BLEU, NCD) for generated answers
+  * `3d_correlation_between_scores.py` – Compute Spearman/partial correlations between CAD (or other) scores and GPT evaluation 
 * **Shell wrappers**:
 
   * `run.sh` – End-to-end local run (inference → embedding → scoring)
-  * `openai_embedding.sh` – Embed answers produced by `a1_inference.py` using the OpenAI embedding model and compute CAD scores
+  * `openai_embedding.sh` – Embed answers produced by `1_generate_answers.py` using the OpenAI embedding model and compute CAD scores
   * `openai_judge.sh` – Evaluate generated answers through the OpenAI judge model for proxy human scoring
+  * `run_correlation.sh` – Simple wrapper to compute alternative metrics and run correlation analysis in one step
 * **Configuration**:
 
-  * `.env` – Shared variables for models, env tags, directories
+  * `base.env` – Shared variables for models, env tags, directories
 
 ---
 
@@ -66,7 +68,7 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 
 1. **Clone or unzip** this repository.
 2. **Configure**:
-    Edit .env to set GEN_MODEL, EMB_MODEL, JUDGE_MODEL, GEN_ENV, directories, and generation params
+    Edit base.env to set GEN_MODEL, EMB_MODEL, JUDGE_MODEL, GEN_ENV, directories, and generation params
 3. **Local pipeline**:
 
    ```bash
@@ -75,7 +77,7 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 
    Outputs in `$GEN_DIR/`, `$EMB_DIR/`, and `$SCORING_DIR/`.
 4. (optional) **OpenAI models as a judge**:
-   * Edit .env to set JUDGE_MODEL
+   * Edit base.env to set JUDGE_MODEL
    * Run
     
    ```bash
@@ -83,12 +85,22 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
    ```
 
 5. (optional) **OpenAI models as a embedding model**:
-   * Edit .env to set API_EMB_MODEL
+   * Edit base.env to set API_EMB_MODEL
    * Run
     
    ```bash
    bash openai_embedding.sh
    ```
+
+6. (optional) **Alternative metrics & correlation analysis**:
+   * Edit `base.env` to set `SCORING_METHOD` (e.g., `self_bleu`, `ncd`) and `SCORING_ARG_N` if needed
+   * Run
+   
+   ```bash
+   bash run_correlation.sh
+   ```
+
+   This will compute the selected alternative metric (if set), then run correlation analysis between the metric and GPT/human scores. Results are printed to the console.
 
 ---
 
@@ -98,8 +110,8 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
 * **Python**: ≥ 3.10
 * **Python packages**:
 
-  * `vllm`, `nltk`, `pandas`, `numpy`, `zstandard`, `scipy`, `scikit-learn`
-  * `openai` (optional)
+  * `PyTorch` `Transformers` `vllm`, `nltk`, `pandas`, `numpy`, `zstandard`, `scipy`, `scikit-learn`
+  * (optional) `openai` `pingouin`
 
 ---
 

@@ -169,13 +169,13 @@ def generate_with_validation(queries: list[str], tokenizer, args: argparse.Names
     sampling_params = SamplingParams(
         max_tokens=args.max_new_tokens,
         temperature=args.temperature,
-        seed = 42,
+        seed = args.seed,
     )
 
-    if args.top_p is not None:
-        sampling_params.top_p = args.top_p
     if args.top_k is not None:
         sampling_params.top_k = args.top_k
+    if args.top_p is not None:
+        sampling_params.top_p = args.top_p
     if args.min_p is not None:
         sampling_params.min_p = args.min_p
 
@@ -295,12 +295,13 @@ if __name__ == "__main__":
     parser.add_argument("--generation_env", type=str, default="standard")
     parser.add_argument("--max_new_tokens", type=int, default=1024)
     parser.add_argument("--temperature", type=float, default=1)
+    parser.add_argument("--top_k", type=convert_or_none(int), default=50)
     parser.add_argument("--top_p", type=convert_or_none(float), default=1)
     parser.add_argument("--min_p", type=convert_or_none(float), default=None)
-    parser.add_argument("--top_k", type=convert_or_none(int), default=50)
     parser.add_argument("--minimum_required_num_items", type=convert_or_none(int), default=None)
     parser.add_argument("--maximum_allowed_num_items", type=convert_or_none(int), default=None)
     parser.add_argument("--min_meaningful_tokens_per_answer", type=convert_or_none(int), default=3)
+    parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--temp-save", action="store_true")
     args = parser.parse_args()
