@@ -100,8 +100,6 @@ This repository implements the **CAD Score** (“Context-Aware Semantic Diversit
    bash run_correlation.sh
    ```
 
-   This will compute the selected alternative metric (if set), then run correlation analysis between the metric and GPT/human scores. Results are printed to the console.
-
 ---
 
 ## Requirements
